@@ -21,9 +21,9 @@ def randomPoints(ptcount, xbounds, ybounds, zbounds):
         pts.append(point3(px, py, pz))
     return pts
 
-scene = randomPoints(4096, [-5, 5], [-5, 5], [-5, 5])
+scene = randomPoints(8192, [-5, 5], [-5, 5], [-5, 5])
 
-def marchRay(startPt, direct, maxcount, cutoff):
+def marchRay(startPt, direct, maxcount, cutoff, maxdist):
     cpoint = startPt
     totalDist = 0
     for n in range(maxcount):
@@ -32,19 +32,24 @@ def marchRay(startPt, direct, maxcount, cutoff):
         totalDist += stepSize
         if stepSize < cutoff:
             return totalDist
-    return 25
+        if totalDist > maxdist:
+            return maxdist
+    return maxdist
 
-img = Image.new("RGB", (128, 128), "black")
+iw = 256
+ih = 256
+
+img = Image.new("RGB", (iw, ih), "black")
 pixels = img.load()
-point = point3(0, 0, -7)
+point = point3(0, 0, -10)
 
-for y in range(128):
-    for x in range(128):
-        direct = vector3(scaleLinear(x, 0, 128, -1, 1), scaleLinear(y, 0, 128, -1, 1), 1)
-        intensity = marchRay(point, direct, 32, 0.1)
-        ir = int(scaleQuad(intensity, 0, 25, 0, 255))
-        ig = int(scaleLinear(intensity, 0, 25, 0, 255))
-        ib = int(scaleSqrt(intensity, 0, 25, 0, 255))
+for y in range(ih):
+    for x in range(iw):
+        direct = vector3(scaleLinear(x, 0, iw - 1, -1, 1), scaleLinear(y, 0, ih -1, -1, 1), 1)
+        intensity = marchRay(point, direct, 32, 0.025, 50)
+        ir = int(scaleQuad(intensity, 0, 50, 0, 255))
+        ig = int(scaleLinear(intensity, 0, 50, 0, 255))
+        ib = int(scaleSqrt(intensity, 0, 50, 0, 255))
         pixels[x, y] = (ir, ig, ib)
         print("rendered pixel", x, y, " | ", ir, ig, ib)
 

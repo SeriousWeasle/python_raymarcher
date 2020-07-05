@@ -57,5 +57,9 @@ class vector3:
         scale = length/self.length()
         return(vector3(self.e[0] * scale, self.e[1] * scale, self.e[2] * scale))
 
+    def scaleZ(self, length):
+        scale = length/self.e[2]
+        return vector3(self.e[0] * scale, self.e[1] * scale, self.e[2] * scale)
+
 point3 = vector3
 color = vector3
