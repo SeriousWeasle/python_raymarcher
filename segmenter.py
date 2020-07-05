@@ -56,29 +56,34 @@ def SDF(refPoint, points):
 
 def marchRay(startpt, direct, maxcount, cutoff, maxdist, scene):
     cpoint = startpt
+    total_dist = 0
+    prev_idx = None
     for n in range(maxcount):
-        prev_idx = None
-        idx = calcsegpos(cpoint, 10, 10, 10, 10, 10, 10, -5, -5, -5)
+        idx = calcsegpos(cpoint, 10, 10, 10, sc[0], sc[1], sc[2], -5, -5, -5)
+        if idx[0] > sc[0] or idx[0] < 0 or idx[1] > sc[1] or idx[1] < 0 or idx[2] > sc[2] or idx[2] < 0:
+            return (0, 0, 0)
         if idx != prev_idx:
             relpts = []
             for sx in range(-1, 2):
                 for sy in range(-1, 2):
                     for sz in range(-1, 2):
                         try:
-                            for pt in scene[sx][sy][sz]:
+                            for pt in scene[idx[0] + sx][idx[1] + sy][idx[2] + sz]:
                                 relpts.append(pt)
                         except: pass
         stepsize = SDF(cpoint, relpts)
+        total_dist += stepsize
         cpoint = cpoint + direct.scale(stepsize)
+        prev_idx = idx
         if stepsize < cutoff:
             return (int(scaleLinear(cpoint.x(), -5, 5, 0, 255)), int(scaleLinear(cpoint.y(), -5, 5, 0, 255)), int(scaleLinear(cpoint.z(), -5, 5, 0, 255)))
-        if stepsize > maxdist:
+        if total_dist > maxdist:
             return (0, 0, 0)
     return (0, 0, 0)
 
-
-points = randomPoints(8192, [-5, 5], [-5, 5], [-5, 5])
-scene = segmentize(points, 10, 10, 10, 10, 10, 10, -5, -5, -5)
+sc = [20, 20, 20]
+points = randomPoints(16384, [-5, 5], [-5, 5], [-5, 5])
+scene = segmentize(points, 10, 10, 10, sc[0], sc[1], sc[2], -5, -5, -5)
 
 iw = 256
 ih = 256
@@ -95,6 +100,6 @@ for y in tqdm(range(ih)):
         if startpos.x() > 5 or startpos.x() < -5 or startpos.y() > 5 or startpos.y() < -5:
             pixels[x, y] = (0, 0, 0)
         else:
-            pixels[x, y] = marchRay(startpos, direct, 32, 0.1, 25, scene)
+            pixels[x, y] = marchRay(startpos, direct, 32, 0.05, 25, scene)
 
 img.save('./segtest.png')
