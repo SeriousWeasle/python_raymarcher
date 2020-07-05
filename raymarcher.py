@@ -2,6 +2,7 @@ from catsnake import *
 import math
 import random
 from PIL import Image
+from tqdm import tqdm
 
 def SDF(refPoint, points):
     shortest = None
@@ -20,19 +21,31 @@ def randomPoints(ptcount, xbounds, ybounds, zbounds):
         pts.append(point3(px, py, pz))
     return pts
 
-scene = randomPoints(200, [-5, 5], [-5, 5], [-5, 5])
+scene = randomPoints(4096, [-5, 5], [-5, 5], [-5, 5])
 
-def marchRayOrth(startPt, dir, maxcount):
-    pass
+def marchRay(startPt, direct, maxcount, cutoff):
+    cpoint = startPt
+    totalDist = 0
+    for n in range(maxcount):
+        stepSize = SDF(cpoint, scene)
+        cpoint = cpoint + direct.scale(stepSize)
+        totalDist += stepSize
+        if stepSize < cutoff:
+            return totalDist
+    return 25
 
-v1 = vector3(12, 6, 4)
-v2 = vector3(6, 3, 2)
+img = Image.new("RGB", (128, 128), "black")
+pixels = img.load()
+point = point3(0, 0, -7)
 
-v4 = vector3(0.5, -0.5, 0.25)
+for y in range(128):
+    for x in range(128):
+        direct = vector3(scaleLinear(x, 0, 128, -1, 1), scaleLinear(y, 0, 128, -1, 1), 1)
+        intensity = marchRay(point, direct, 32, 0.1)
+        ir = int(scaleQuad(intensity, 0, 25, 0, 255))
+        ig = int(scaleLinear(intensity, 0, 25, 0, 255))
+        ib = int(scaleSqrt(intensity, 0, 25, 0, 255))
+        pixels[x, y] = (ir, ig, ib)
+        print("rendered pixel", x, y, " | ", ir, ig, ib)
 
-print(v1.length(), v2.length())
-
-print(v1, v2)
-v3 = v1.clamp(7)
-
-print(v3, v3.length(), (v3*v4).clamp(v3.length()), (v3 * v4).clamp(v3.length()).length())
+img.save('./test.png')

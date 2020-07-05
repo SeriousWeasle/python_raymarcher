@@ -53,7 +53,7 @@ class vector3:
     def __str__(self):
         return "(" + str(self.e[0]) + ", " + str(self.e[1]) + ", " + str(self.e[2]) + ")"
 
-    def clamp(self, length):
+    def scale(self, length):
         scale = length/self.length()
         return(vector3(self.e[0] * scale, self.e[1] * scale, self.e[2] * scale))
 
