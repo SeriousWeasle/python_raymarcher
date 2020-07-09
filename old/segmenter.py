@@ -4,6 +4,9 @@ import random
 from PIL import Image
 from tqdm import tqdm
 
+msaa_samples = 1
+msaa_offs = 0.025
+
 def randomPoints(ptcount, xbounds, ybounds, zbounds):
     pts = []
     for pt in range(ptcount):
@@ -71,35 +74,41 @@ def marchRay(startpt, direct, maxcount, cutoff, maxdist, scene):
                             for pt in scene[idx[0] + sx][idx[1] + sy][idx[2] + sz]:
                                 relpts.append(pt)
                         except: pass
+        if len(relpts) < 1:
+            return (0, 0, 0)
         stepsize = SDF(cpoint, relpts)
         total_dist += stepsize
         cpoint = cpoint + direct.scale(stepsize)
         prev_idx = idx
         if stepsize < cutoff:
-            return (int(scaleLinear(cpoint.x(), -5, 5, 0, 255)), int(scaleLinear(cpoint.y(), -5, 5, 0, 255)), int(scaleLinear(cpoint.z(), -5, 5, 0, 255)))
+            return (int(scaleLinear(cpoint.r(), -5, 5, 0, 255)), int(scaleLinear(cpoint.g(), -5, 5, 0, 255)), int(scaleLinear(cpoint.b(), -5, 5, 0, 255)))
         if total_dist > maxdist:
             return (0, 0, 0)
     return (0, 0, 0)
 
-sc = [20, 20, 20]
+sc = [15, 15, 15]
 points = randomPoints(16384, [-5, 5], [-5, 5], [-5, 5])
 scene = segmentize(points, 10, 10, 10, sc[0], sc[1], sc[2], -5, -5, -5)
 
-iw = 256
-ih = 256
+for f in range(16):
+    iw = 256
+    ih = 256
 
-img = Image.new("RGB", (iw, ih), "white")
-pixels = img.load()
-point = point3(0, 0, -15)
+    img = Image.new("RGB", (iw, ih), "white")
+    pixels = img.load()
+    point = point3(0, 0, -15)
 
-for y in tqdm(range(ih)):
-    for x in range(iw):
-        direct = vector3(scaleLinear(x, 0, iw - 1, -1, 1), scaleLinear(y, 0, ih -1, -1, 1), 1)
-        firstStep = direct.scaleZ((point.z()*-1)-5)
-        startpos = point + firstStep
-        if startpos.x() > 5 or startpos.x() < -5 or startpos.y() > 5 or startpos.y() < -5:
-            pixels[x, y] = (0, 0, 0)
-        else:
-            pixels[x, y] = marchRay(startpos, direct, 32, 0.05, 25, scene)
-
-img.save('./segtest.png')
+    for s in range(msaa_samples):
+        for y in tqdm(range(ih), desc='rendering frame ' + str(f + 1) + '/16; sample ' + str(s+1) + "/1"):
+            for x in range(iw):
+                off = vector3(scaleLinear(random.random(), 0, 1, -msaa_offs, msaa_offs), scaleLinear(random.random(), 0, 1, -msaa_offs, msaa_offs), scaleLinear(random.random(), 0, 1, -msaa_offs, msaa_offs))
+                direct = vector3(scaleLinear(x, 0, iw - 1, -1, 1), scaleLinear(y, 0, ih -1, -1, 1), 1) + off
+                firstStep = direct.scaleZ((point.z()*-1)-5)
+                startpos = point + firstStep
+                if startpos.x() > 5 or startpos.x() < -5 or startpos.y() > 5 or startpos.y() < -5:
+                    crgb = (0, 0, 0)
+                else:
+                    crgb = pixels[x, ih - y - 1] = marchRay(startpos, direct, 128, 0.05, 25, scene)
+                
+    pixels[x, ih - y - 1]
+    img.save('./segtest_' + str(f) + '.png')
